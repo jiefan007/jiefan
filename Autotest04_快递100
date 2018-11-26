@@ -1,0 +1,75 @@
+from selenium import webdriver
+import time,unittest,xlrd,xlwt
+from HTMLTestRunner_PY3 import HTMLTestRunner
+import xlrd, xlwt
+
+
+class Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.driver = webdriver.Chrome()
+        self.driver.get("http://www.kuaidi100.com/")
+        self.driver.implicitly_wait(1)
+        self.driver.maximize_window()
+        self.driver.find_element_by_xpath("//*[contains(@style,'https://cdn.kuaidi100.com/images/spider_search')]").click()#关闭首页的广告
+
+    @classmethod
+    def tearDownClass(self):
+        self.driver.close()
+
+    def login(self):
+        '''封装登录方法，其它的以test开头的测试用例都调用此方法'''
+        self.driver.find_element_by_xpath("//*[@id='welcome']/a[2]").click()
+        input_username=self.driver.find_element_by_xpath("//*[@id='name']")
+        input_username.clear()
+        input_username.send_keys("15902127953")
+        input_password=self.driver.find_element_by_xpath("//*[@id = 'password']")
+        input_password.clear()
+        input_password.send_keys("test123456")
+        self.driver.find_element_by_xpath("//button[@class = 'btn-submit']").click()
+        self.driver.find_element_by_xpath("//*[@alt='快递100']").click()              #进入查询页面
+
+
+    def testcase01(self):
+        '''用例1：  前提：查询一个正确的快递单号，当输入单号时，可能出现多个快递公司。
+                    要求：依次去查询，如果查询到了，就跳出循环，如果第一个没查询到，依次查询
+                    先调用登录函数'''
+        self.login()
+        self.driver.find_element_by_xpath("//input[@name='postid']").send_keys("123456")  #快递单号8265001059
+        kuaidigongsi_count=len(self.driver.find_elements_by_xpath("//*[@id='inputTips']/li"))
+        for i in range(1,int(kuaidigongsi_count-1)):
+            time.sleep(2)
+            self.driver.find_element_by_xpath("//*[@id='inputTips']/li[{}]".format(i)).click()
+            time.sleep(2)
+            if self.driver.find_element_by_xpath("//*[@id='notFindTip']").is_displayed():
+                '''[抱歉，暂无查询记录框]出现了，表示没快递单号在该快递公司没查到，'''
+                print("没查到,继续点击快递单号输入框")
+                self.driver.find_element_by_xpath("//input[@name='postid']").click()  #点击一下快递单号输入框
+            else:
+                print("查询成功，跳出循环")
+                '''[抱歉，暂无查询记录框]没出现，表示没快递单号查询成功了，可以跳出for循环'''
+                break
+    def testcase2(self):
+        '''用例2：和客服聊天'''
+        driver=self.driver
+        driver.find_element_by_xpath("//a[@title='联系客服']").click()
+        driver.switch_to.frame("udesk_iframe")
+        driver.find_element_by_xpath("//*[@id='txtMsg']").send_keys("homework")
+        time.sleep(1)
+        driver.find_element_by_xpath("//*[@id='btnSend']").click()
+        time.sleep(1)
+        result=len(driver.find_elements_by_xpath("//*[@class='msg theme-bg {typeClz}']/span[text()=' homework']"))
+        self.assertEqual(1,int(result))
+if __name__ == "__main__":
+    # # 实例化一个对象，创建测试报告集
+    # testcase = unittest.TestSuite()
+    # # 将用例添加到对象中
+    # testcase.addTests(unittest.TestLoader().loadTestsFromTestCase(Test))
+    # timereport = time.strftime('%Y-%m-%d-%H-%M', time.localtime())  # 获取当前时间
+    # dir = 'E:/sencondDemo/' + timereport + 'test.html'  # 定义测试报告路径+当前时间
+    #
+    # f = open(dir, "wb")
+    # runner = HTMLTestRunner(stream=f, title="自动化测试报告", description="selenium")
+    # runner.run(testcase)
+    # sendemail2()
+    unittest.main()
