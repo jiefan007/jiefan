@@ -1,0 +1,88 @@
+from selenium import webdriver
+import time
+import re
+from os import path
+from selenium.webdriver.common.alert import Alert
+import requests,base64
+import xlrd
+import xlwt
+
+
+
+wb = xlwt.Workbook()
+ws = wb.add_sheet("折叠手机")
+
+
+ws.write(0,0,"title")
+ws.write(0,1,"content")
+ws.write(0,2,"time")
+ws.write(0,3,"client")
+ws.write(0,4,"collect")
+ws.write(0,5,"transmit")
+ws.write(0,6,"comment")
+ws.write(0,7,"praise")
+
+
+
+
+
+
+
+'''微博爬虫'''
+
+driver = webdriver.Chrome()
+driver.get("https://s.weibo.com/")
+driver.maximize_window()
+driver.find_element_by_xpath('//*[@id="pl_homepage_search"]/div/div[2]/div/input').send_keys('折叠手机')
+driver.find_element_by_css_selector('[class="s-btn-b"]').click()
+time.sleep(2)
+
+driver.find_element_by_css_selector('[node-type="advsearch"]').click()
+driver.find_element_by_id('radio03').click()
+driver.find_element_by_css_selector('[class="s-btn-a"]').click()
+
+'''开始找元素'''
+eles=driver.find_elements_by_xpath('.//*[@action-type="feed_list_item"]')
+num=len(eles)
+
+row=1
+
+# for i in range(num):
+#     ele=driver.find_elements_by_xpath('//*[@class="name"]')[i]
+#     print(ele.text)
+
+
+
+for x in range(20):
+    eles=driver.find_elements_by_xpath('.//*[@action-type="feed_list_item"]')
+    for user in eles:
+        title = user.find_element_by_xpath('.//*[@class="name"]').text
+        content = user.find_element_by_xpath('.//*[@class="txt"]').text
+        time = user.find_element_by_xpath('.//*[@class="from"]/a[1]').text
+        # client = user.find_element_by_xpath('.//*[@class="from"]/a[2]').text
+        collect = user.find_element_by_xpath('.//*[@class="card-act"]/ul/li[1]/a').text.split('收藏')[1] or 0
+        transmit = user.find_element_by_xpath('.//*[@class="card-act"]/ul/li[2]/a').text.split('转发')[1] or 0
+        comment = user.find_element_by_xpath('.//*[@class="card-act"]/ul/li[3]/a').text.split('评论')[1] or 0
+        praise = user.find_element_by_xpath('.//*[@class="card-act"]/ul/li[4]/a').text or 0
+
+        print(title,content,time,collect,transmit,comment,praise)
+    
+        ws.write(row,0,title)
+        ws.write(row,1,content)
+        ws.write(row,2,time)
+        # ws.write(row,3,client)
+        ws.write(row,4,collect)
+        ws.write(row,5,transmit)
+        ws.write(row,6,comment)
+        ws.write(row,7,praise)
+
+        row+=1
+    '''开始翻页'''   
+    driver.find_element_by_css_selector('[class="pagenum"]').click()
+    xpath = '//*[@id="pl_feedlist_index"]/div[3]/div/span/ul/li[{}]/a'.format(x+2)
+    driver.find_element_by_xpath(xpath).click()
+
+
+
+
+wb.save("折叠手机.xls")
